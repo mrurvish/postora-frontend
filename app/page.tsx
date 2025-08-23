@@ -1,100 +1,184 @@
 "use client";
-import Image from 'next/image';
-import Link from 'next/link';
-import { BRAND_CONFIG } from '../lib/config';
-import { Hero, Stats, FeaturedArticles, Categories, CTA } from '@/components/sections';
+import React, { useState } from 'react';
+import { Hero } from '@/components/sections/hero';
+import { Stories } from '@/components/sections/stories';
+import { PostCard } from '@/components/ui/post-card';
+import { SuggestedUsers } from '@/components/sections/suggested-users';
+import { TrendingTopics } from '@/components/sections/trending-topics';
+import { H2, BodyLarge, Muted } from '@/components/ui/text';
 
 export default function HomePage() {
-  const featuredPosts = [
+  const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
+  const [followedUsers, setFollowedUsers] = useState<Set<number>>(new Set());
+
+  const stories = [
+    { id: 1, user: 'Sarah Chen', avatar: '👩‍💻', isLive: true },
+    { id: 2, user: 'Mike Johnson', avatar: '👨‍🎨', isLive: false },
+    { id: 3, user: 'Emma Wilson', avatar: '👩‍🎭', isLive: true },
+    { id: 4, user: 'Alex Rivera', avatar: '👨‍🚀', isLive: false },
+    { id: 5, user: 'Lisa Park', avatar: '👩‍🔬', isLive: false },
+    { id: 6, user: 'David Kim', avatar: '👨‍💼', isLive: true },
+    { id: 7, user: 'Anna Lee', avatar: '👩‍🎨', isLive: false },
+    { id: 8, user: 'Tom Baker', avatar: '👨‍🍳', isLive: false },
+  ];
+
+  const trendingPosts = [
     {
       id: 1,
-      title: 'The Future of Web Development',
-      excerpt: 'Exploring the latest trends and technologies shaping the future of web development...',
-      author: 'Sarah Chen',
-      date: '2024-01-15',
-      readTime: '5 min read',
-      image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=250&fit=crop',
-      tags: ['Web Development', 'Technology', 'Future']
+      title: "The Future of Social Media: Beyond the Algorithm",
+      excerpt: "Exploring how AI and human creativity are reshaping the way we connect online...",
+      author: { name: "Sarah Chen", avatar: "👩‍💻", verified: true },
+      date: "2 hours ago",
+      readTime: 5,
+      image: "/api/placeholder/400/250",
+      tags: ["Technology", "Social Media", "AI"],
+      likes: 1247,
+      comments: 89,
+      shares: 234,
+      isTrending: true
     },
     {
       id: 2,
-      title: 'Building Scalable Applications',
-      excerpt: 'Learn the best practices for building applications that can grow with your business...',
-      author: 'Mike Johnson',
-      date: '2024-01-12',
-      readTime: '8 min read',
-      image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=250&fit=crop',
-      tags: ['Architecture', 'Scalability', 'Best Practices']
+      title: "Building Authentic Communities in the Digital Age",
+      excerpt: "How to create meaningful connections when everyone is just a click away...",
+      author: { name: "Mike Johnson", avatar: "👨‍🎨", verified: false },
+      date: "4 hours ago",
+      readTime: 7,
+      image: "/api/placeholder/400/250",
+      tags: ["Community", "Digital", "Connection"],
+      likes: 892,
+      comments: 156,
+      shares: 78,
+      isTrending: true
     },
     {
       id: 3,
-      title: 'The Art of Code Review',
-      excerpt: 'Discover how effective code reviews can improve code quality and team collaboration...',
-      author: 'Emily Rodriguez',
-      date: '2024-01-10',
-      readTime: '6 min read',
-      image: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=400&h=250&fit=crop',
-      tags: ['Code Review', 'Collaboration', 'Quality']
+      title: "The Art of Storytelling: From Ancient Times to TikTok",
+      excerpt: "How storytelling has evolved and what makes content truly engaging...",
+      author: { name: "Emma Wilson", avatar: "👩‍🎭", verified: true },
+      date: "6 hours ago",
+      readTime: 8,
+      image: "/api/placeholder/400/250",
+      tags: ["Storytelling", "Content", "History"],
+      likes: 2156,
+      comments: 234,
+      shares: 567,
+      isTrending: false
     }
   ];
 
-  const categories = [
-    { name: 'Technology', count: 45, icon: '💻', color: 'from-blue-500 to-cyan-500' },
-    { name: 'Design', count: 32, icon: '🎨', color: 'from-purple-500 to-pink-500' },
-    { name: 'Business', count: 28, icon: '📊', color: 'from-green-500 to-emerald-500' },
-    { name: 'Lifestyle', count: 23, icon: '🌟', color: 'from-orange-500 to-red-500' },
-    { name: 'Science', count: 19, icon: '🔬', color: 'from-indigo-500 to-blue-500' },
-    { name: 'Travel', count: 15, icon: '✈️', color: 'from-teal-500 to-green-500' }
+  const suggestedUsers = [
+    {
+      id: 1,
+      name: "Creative Coder",
+      avatar: "👨‍💻",
+      bio: "Building the future, one line at a time",
+      followers: 12.5,
+      verified: true
+    },
+    {
+      id: 2,
+      name: "Digital Artist",
+      avatar: "👩‍🎨",
+      bio: "Turning imagination into digital reality",
+      followers: 8.9,
+      verified: false
+    },
+    {
+      id: 3,
+      name: "Tech Explorer",
+      avatar: "🚀",
+      bio: "Discovering the next big thing in tech",
+      followers: 15.2,
+      verified: true
+    }
   ];
 
-  const stats = [
-    { label: 'Articles Published', value: '2,847' },
-    { label: 'Active Writers', value: '156' },
-    { label: 'Monthly Readers', value: '45.2K' },
-    { label: 'Countries Reached', value: '89' }
+  const trendingTopics = [
+    "#TechTrends2024",
+    "#DigitalArt",
+    "#SocialMedia",
+    "#Innovation",
+    "#CreativeCoding"
   ];
+
+  const handleLike = (postId: number) => {
+    setLikedPosts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleFollow = (userId: number) => {
+    setFollowedUsers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleGetStarted = () => {
+    // This will be handled by the navigation component
+    console.log('Get Started clicked');
+  };
+
+  const handleExplore = () => {
+    // This will be handled by the navigation component
+    console.log('Explore clicked');
+  };
 
   return (
-    <main className="flex-1">
-      {/* Hero Section - Now using component */}
-      <Hero
-        title="Discover, Write, and Inspire"
-        description="Join thousands of writers sharing their stories, insights, and experiences with the world. Start your writing journey today."
-        primaryAction={{
-          label: "Start Writing",
-          href: "/register"
-        }}
-        secondaryAction={{
-          label: "Explore Articles",
-          href: "/blog"
-        }}
-        showBrandInfo={true}
-        brandName={BRAND_CONFIG.name}
-        brandTagline={BRAND_CONFIG.tagline}
-      />
+    <main className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <Hero onGetStarted={handleGetStarted} onExplore={handleExplore} />
 
-      {/* Stats Section - Now using component */}
-      <Stats stats={stats} />
+      {/* Stories Section */}
+      <Stories stories={stories} />
 
-      {/* Featured Articles - Now using component */}
-      <FeaturedArticles posts={featuredPosts} />
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Feed */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="text-center mb-8">
+              <H2 className="mb-4">Trending Posts</H2>
+              <Muted>Discover what's happening in the community</Muted>
+            </div>
+            
+            {trendingPosts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                isLiked={likedPosts.has(post.id)}
+                onLike={handleLike}
+                onFollow={(authorName) => {
+                  // Handle follow logic here
+                  console.log(`Following ${authorName}`);
+                }}
+              />
+            ))}
+          </div>
 
-      {/* Categories Section - Now using component */}
-      <Categories categories={categories} />
-
-      {/* CTA Section - Now using component */}
-      <CTA
-        title="Ready to Share Your Story?"
-        description="Join thousands of writers who are already sharing their knowledge and experiences with our global community."
-        primaryAction={{
-          label: "Get Started Today",
-          href: "/register"
-        }}
-        secondaryAction={{
-          label: "Sign In",
-          href: "/login"
-        }}
-      />
+          {/* Sidebar */}
+          <div className="space-y-6">
+            <SuggestedUsers 
+              users={suggestedUsers} 
+              followedUsers={followedUsers}
+              onFollow={handleFollow}
+            />
+            <TrendingTopics topics={trendingTopics} />
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

@@ -1,68 +1,79 @@
 import React from 'react';
-import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { H1, H2, BodyLarge, Muted } from '@/components/ui/text';
+import { BRAND_CONFIG } from '@/lib/config';
 
 interface HeroProps {
-  title: string;
-  subtitle?: string;
-  description: string;
-  primaryAction: {
-    label: string;
-    href: string;
-  };
-  secondaryAction: {
-    label: string;
-    href: string;
-  };
-  showBrandInfo?: boolean;
-  brandName?: string;
-  brandTagline?: string;
+  onGetStarted: () => void;
+  onExplore: () => void;
 }
 
-export function Hero({
-  title,
-  subtitle,
-  description,
-  primaryAction,
-  secondaryAction,
-  showBrandInfo = false,
-  brandName,
-  brandTagline
-}: HeroProps) {
+export function Hero({ onGetStarted, onExplore }: HeroProps) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/10 py-20 lg:py-32">
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        {showBrandInfo && brandName && brandTagline && (
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8">
-            <span className="mr-2">✨</span>
-            Welcome to {brandName} - {brandTagline}
-          </div>
-        )}
-        {subtitle && (
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8">
-            <span className="mr-2">✨</span>
-            {subtitle}
-          </div>
-        )}
-        <h1 className="text-5xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
-          {title}
-        </h1>
-        <p className="text-xl lg:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-          {description}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link 
-            href={primaryAction.href}
-            className="px-8 py-4 gradient-primary text-primary-foreground rounded-xl font-semibold text-lg shadow-medium hover:shadow-strong transition-all duration-300 transform hover:scale-105"
+    <section className="relative py-20 lg:py-32 overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-chart-5/5" />
+      
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        {/* Main Heading */}
+        <div className="mb-8">
+          <H1 className="mb-6 bg-gradient-to-r from-primary via-chart-5 to-chart-3 bg-clip-text text-transparent">
+            Share Your Story with the World
+          </H1>
+          <H2 className="text-2xl md:text-3xl lg:text-4xl mb-8">
+            Connect, Create, and Inspire on the Ultimate Social Platform
+          </H2>
+        </div>
+
+        {/* Description */}
+        <BodyLarge className="max-w-3xl mx-auto mb-12 text-muted-foreground">
+          Join millions of creators, thinkers, and storytellers. Share your ideas, discover amazing content, 
+          and build meaningful connections in a space designed for authentic expression.
+        </BodyLarge>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+          <Button 
+            onClick={onGetStarted}
+            size="lg" 
+            className="px-8 py-4 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
           >
-            {primaryAction.label}
-          </Link>
-          <Link 
-            href={secondaryAction.href}
-            className="px-8 py-4 bg-card border border-border text-foreground rounded-xl font-semibold text-lg hover:bg-accent/50 transition-all duration-300"
+            Start Sharing Today
+          </Button>
+          <Button 
+            onClick={onExplore}
+            variant="outlined" 
+            size="lg" 
+            className="px-8 py-4 text-lg font-semibold border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-xl transition-all duration-300 transform hover:scale-105"
           >
-            {secondaryAction.label}
-          </Link>
+            Explore Content
+          </Button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="text-center">
+            <div className="text-3xl md:text-4xl font-bold text-primary mb-2">10M+</div>
+            <Muted>Active Users</Muted>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl md:text-4xl font-bold text-chart-2 mb-2">50M+</div>
+            <Muted>Stories Shared</Muted>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl md:text-4xl font-bold text-chart-3 mb-2">100+</div>
+            <Muted>Countries</Muted>
+          </div>
+        </div>
+
+        {/* Brand Badge */}
+        <div className="mt-16">
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-card border border-border rounded-full shadow-sm">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-chart-5 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">{BRAND_CONFIG.name.charAt(0)}</span>
+            </div>
+            <Muted className="font-medium">Powered by {BRAND_CONFIG.name}</Muted>
+          </div>
         </div>
       </div>
     </section>

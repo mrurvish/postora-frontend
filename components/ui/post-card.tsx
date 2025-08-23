@@ -1,126 +1,118 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
-export interface Post {
+interface Author {
+  name: string;
+  avatar: string;
+  verified: boolean;
+}
+
+interface Post {
   id: number;
   title: string;
   excerpt: string;
-  status: 'draft' | 'published' | 'archived';
-  createdAt: string;
-  updatedAt: string;
+  author: Author;
+  date: string;
   readTime: number;
-  category: string;
+  image: string;
   tags: string[];
+  likes: number;
+  comments: number;
+  shares: number;
+  isTrending: boolean;
 }
 
-export interface PostCardProps {
+interface PostCardProps {
   post: Post;
-  variant?: 'default' | 'elevated' | 'outlined' | 'glass';
-  size?: 'sm' | 'md' | 'lg';
-  showActions?: boolean;
-  onEdit?: () => void;
-  onPublish?: () => void;
-  className?: string;
+  isLiked: boolean;
+  onLike: (postId: number) => void;
+  onFollow: (authorName: string) => void;
 }
 
-export function PostCard({ 
-  post, 
-  variant = 'default',
-  size = 'md',
-  showActions = false, 
-  onEdit, 
-  onPublish,
-  className 
-}: PostCardProps) {
-  const variants = {
-    default: 'bg-card border border-border',
-    elevated: 'bg-card shadow-medium border border-border',
-    outlined: 'bg-transparent border-2 border-border',
-    glass: 'glass border border-border/20'
-  };
-
-  const sizes = {
-    sm: 'p-4',
-    md: 'p-6',
-    lg: 'p-8'
-  };
-
-  const statusColors = {
-    draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-    published: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-    archived: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-  };
-
+export function PostCard({ post, isLiked, onLike, onFollow }: PostCardProps) {
   return (
-    <div className={cn(
-      'rounded-2xl transition-all duration-300 hover:shadow-medium',
-      variants[variant],
-      sizes[size],
-      className
-    )}>
-      <div className="flex items-start justify-between mb-4">
+    <article className="social-card group relative">
+      {/* Post Header */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-12 h-12 bg-gradient-to-br from-accent to-accent/50 rounded-full flex items-center justify-center text-xl">
+          {post.author.avatar}
+        </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-foreground mb-2 line-clamp-2">
-            {post.title}
-          </h3>
-          <p className="text-muted-foreground text-sm line-clamp-3">
-            {post.excerpt}
-          </p>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-foreground">{post.author.name}</span>
+            {post.author.verified && (
+              <span className="text-primary">✓</span>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {post.date} • {post.readTime} min read
+          </div>
         </div>
-        <span className={cn(
-          'ml-3 px-2 py-1 rounded-full text-xs font-medium capitalize',
-          statusColors[post.status]
-        )}>
-          {post.status}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-        <span>{post.category}</span>
-        <span>{post.readTime} min read</span>
-      </div>
-
-      {post.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {post.tags.slice(0, 3).map((tag, index) => (
-            <span
-              key={index}
-              className="px-2 py-1 bg-muted text-muted-foreground rounded-full text-xs"
-            >
-              {tag}
-            </span>
-          ))}
-          {post.tags.length > 3 && (
-            <span className="px-2 py-1 bg-muted text-muted-foreground rounded-full text-xs">
-              +{post.tags.length - 3}
-            </span>
+        <div className="flex items-center gap-2">
+          {post.isTrending && (
+            <div className="trending-badge">
+              Trending
+            </div>
           )}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>Created: {new Date(post.createdAt).toLocaleDateString()}</span>
-        <span>Updated: {new Date(post.updatedAt).toLocaleDateString()}</span>
-      </div>
-
-      {showActions && (
-        <div className="flex gap-2 mt-4 pt-4 border-t border-border">
-          <button
-            onClick={onEdit}
-            className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          <button 
+            onClick={() => onFollow(post.author.name)}
+            className="follow-btn text-sm flex-shrink-0"
           >
-            Edit
+            Follow
           </button>
-          {post.status === 'draft' && (
-            <button
-              onClick={onPublish}
-              className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Publish
-            </button>
-          )}
         </div>
-      )}
-    </div>
+      </div>
+
+      {/* Post Content */}
+      <h3 className="text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors">
+        {post.title}
+      </h3>
+      <p className="text-muted-foreground mb-4">{post.excerpt}</p>
+      
+      {/* Post Image */}
+      <div className="aspect-video rounded-xl overflow-hidden mb-4 bg-accent">
+        <Image
+          src={post.image}
+          alt={post.title}
+          width={400}
+          height={250}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {post.tags.map((tag) => (
+          <span key={tag} className="px-3 py-1 bg-accent text-sm text-foreground rounded-full">
+            #{tag}
+          </span>
+        ))}
+      </div>
+
+      {/* Post Actions */}
+      <div className="post-actions">
+        <button
+          onClick={() => onLike(post.id)}
+          className={`action-btn like ${isLiked ? 'text-like' : ''}`}
+        >
+          <svg className="w-5 h-5" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+          {post.likes}
+        </button>
+        <button className="action-btn comment">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          {post.comments}
+        </button>
+        <button className="action-btn share">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+          </svg>
+          {post.shares}
+        </button>
+      </div>
+    </article>
   );
 }

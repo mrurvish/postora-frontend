@@ -1,76 +1,116 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-export interface TextProps extends React.HTMLAttributes<HTMLElement> {
+interface TextProps {
   children: React.ReactNode;
-  variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'div';
-  size?: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl';
-  weight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold' | 'black';
-  color?: 'default' | 'muted' | 'primary' | 'secondary' | 'accent' | 'destructive' | 'success' | 'warning';
-  align?: 'left' | 'center' | 'right' | 'justify';
   className?: string;
 }
 
-export function Text({
-  variant = 'p',
-  size = 'base',
-  weight = 'normal',
-  color = 'default',
-  align = 'left',
-  className,
-  children,
-  ...props
-}: TextProps) {
-  const sizes = {
-    xs: 'text-xs',
-    sm: 'text-sm',
-    base: 'text-base',
-    lg: 'text-lg',
-    xl: 'text-xl',
-    '2xl': 'text-2xl',
-    '3xl': 'text-3xl',
-    '4xl': 'text-4xl',
-    '5xl': 'text-5xl',
-    '6xl': 'text-6xl',
-    '7xl': 'text-7xl'
-  };
+// Heading Components
+export function H1({ children, className }: TextProps) {
+  return (
+    <h1 className={cn("text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight", className)}>
+      {children}
+    </h1>
+  );
+}
 
-  const weights = {
-    light: 'font-light',
-    normal: 'font-normal',
-    medium: 'font-medium',
-    semibold: 'font-semibold',
-    bold: 'font-bold',
-    extrabold: 'font-extrabold',
-    black: 'font-black'
-  };
+export function H2({ children, className }: TextProps) {
+  return (
+    <h2 className={cn("text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight", className)}>
+      {children}
+    </h2>
+  );
+}
 
-  const colors = {
-    default: 'text-foreground',
-    muted: 'text-muted-foreground',
-    primary: 'text-primary',
-    secondary: 'text-secondary-foreground',
-    accent: 'text-accent-foreground',
-    destructive: 'text-destructive',
-    success: 'text-green-600 dark:text-green-400',
-    warning: 'text-yellow-600 dark:text-yellow-400'
-  };
+export function H3({ children, className }: TextProps) {
+  return (
+    <h3 className={cn("text-2xl md:text-3xl font-bold text-foreground leading-tight", className)}>
+      {children}
+    </h3>
+  );
+}
 
-  const alignments = {
-    left: 'text-left',
-    center: 'text-center',
-    right: 'text-right',
-    justify: 'text-justify'
-  };
+export function H4({ children, className }: TextProps) {
+  return (
+    <h4 className={cn("text-xl md:text-2xl font-semibold text-foreground leading-tight", className)}>
+      {children}
+    </h4>
+  );
+}
 
-  return React.createElement(variant, {
-    className: cn(
-      sizes[size],
-      weights[weight],
-      colors[color],
-      alignments[align],
-      className
-    ),
-    ...props
-  }, children);
+// Body Text Components
+export function BodyLarge({ children, className }: TextProps) {
+  return (
+    <p className={cn("text-lg md:text-xl text-foreground leading-relaxed", className)}>
+      {children}
+    </p>
+  );
+}
+
+export function Body({ children, className }: TextProps) {
+  return (
+    <p className={cn("text-base text-foreground leading-relaxed", className)}>
+      {children}
+    </p>
+  );
+}
+
+export function BodySmall({ children, className }: TextProps) {
+  return (
+    <p className={cn("text-sm text-foreground leading-relaxed", className)}>
+      {children}
+    </p>
+  );
+}
+
+// Muted Text Components
+export function MutedLarge({ children, className }: TextProps) {
+  return (
+    <p className={cn("text-lg md:text-xl text-muted-foreground leading-relaxed", className)}>
+      {children}
+    </p>
+  );
+}
+
+export function Muted({ children, className }: TextProps) {
+  return (
+    <p className={cn("text-base text-muted-foreground leading-relaxed", className)}>
+      {children}
+    </p>
+  );
+}
+
+export function MutedSmall({ children, className }: TextProps) {
+  return (
+    <p className={cn("text-sm text-muted-foreground leading-relaxed", className)}>
+      {children}
+    </p>
+  );
+}
+
+// Label Components
+export function Label({ children, className, htmlFor }: TextProps & { htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} className={cn("text-sm font-medium text-foreground", className)}>
+      {children}
+    </label>
+  );
+}
+
+export function LabelSmall({ children, className, htmlFor }: TextProps & { htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} className={cn("text-xs font-medium text-foreground", className)}>
+      {children}
+    </label>
+  );
+}
+
+// Caption Component
+export function Caption({ children, className }: TextProps) {
+  return (
+    <span className={cn("text-xs text-muted-foreground", className)}>
+      {children}
+    </span>
+  );
 }
