@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ThemeProvider } from "../components/theme-provider";
-import { Navigation } from "../components/navigation";
-import { Footer } from "../components/footer";
-import { Toaster } from "../components/ui/toast";
-import { BRAND_CONFIG } from "../lib/config";
-import { AuthInitializer } from "../components";
-import { ToastProvider } from "../lib/providers/toast-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${BRAND_CONFIG.name} - ${BRAND_CONFIG.tagline}`,
-  description: BRAND_CONFIG.description,
+  title: "Postora - Clean Slate",
+  description: "A clean Next.js project ready for development",
 };
 
 export default function RootLayout({
@@ -30,49 +23,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var theme = localStorage.getItem('theme');
-                  var resolvedTheme;
-                  
-                  if (theme === 'dark') {
-                    resolvedTheme = 'dark';
-                  } else if (theme === 'light') {
-                    resolvedTheme = 'light';
-                  } else {
-                    resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                  }
-                  
-                  document.documentElement.classList.add(resolvedTheme);
-                } catch (e) {
-                  // Fallback to light theme if there's an error
-                  document.documentElement.classList.add('light');
-                }
-              })();
-            `,
-          }}
-        />
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
-        suppressHydrationWarning={true}
-      >
-        <ThemeProvider>
-          <ToastProvider>
-            <Navigation />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-            <Toaster />
-            <AuthInitializer />
-          </ToastProvider>
-        </ThemeProvider>
+    <html lang="en">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {children}
       </body>
     </html>
   );
