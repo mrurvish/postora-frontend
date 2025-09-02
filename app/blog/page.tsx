@@ -1,330 +1,269 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-
-// Demo blog posts data
-const blogPosts = [
-  {
-    id: 1,
-    title: "The Future of Web Development in 2024",
-    excerpt: "Explore the latest trends and technologies that are shaping the future of web development, from AI integration to advanced CSS techniques.",
-    content: "Full article content would go here...",
-    author: {
-      name: "Sarah Johnson",
-      avatar: "👩‍💻",
-      bio: "Senior Developer",
-      verified: true
-    },
-    category: "Technology",
-    readTime: 5,
-    publishedAt: "2024-01-15",
-    tags: ["Web Development", "AI", "CSS", "JavaScript"],
-    featuredImage: "/api/placeholder/400/250",
-    views: 1240,
-    likes: 89,
-    comments: 23,
-    shares: 45,
-    isTrending: true
-  },
-  {
-    id: 2,
-    title: "Building Scalable React Applications",
-    excerpt: "Learn the best practices for building large-scale React applications that can handle millions of users and complex state management.",
-    content: "Full article content would go here...",
-    author: {
-      name: "Mike Chen",
-      avatar: "👨‍💻",
-      bio: "Tech Lead",
-      verified: true
-    },
-    category: "Programming",
-    readTime: 8,
-    publishedAt: "2024-01-12",
-    tags: ["React", "Scalability", "State Management", "Performance"],
-    featuredImage: "/api/placeholder/400/250",
-    views: 2156,
-    likes: 156,
-    comments: 42,
-    shares: 78,
-    isTrending: false
-  },
-  {
-    id: 3,
-    title: "The Art of Effective Content Writing",
-    excerpt: "Discover how to create compelling content that engages readers and drives meaningful conversations in the digital age.",
-    content: "Full article content would go here...",
-    author: {
-      name: "Emma Davis",
-      avatar: "👩‍🎨",
-      bio: "Content Strategist",
-      verified: false
-    },
-    category: "Writing",
-    readTime: 6,
-    publishedAt: "2024-01-10",
-    tags: ["Content Writing", "SEO", "Engagement", "Digital Marketing"],
-    featuredImage: "/api/placeholder/400/250",
-    views: 1890,
-    likes: 134,
-    comments: 31,
-    shares: 56,
-    isTrending: true
-  },
-  {
-    id: 4,
-    title: "Design Systems: A Complete Guide",
-    excerpt: "Master the fundamentals of design systems and learn how to create consistent, scalable design solutions for your products.",
-    content: "Full article content would go here...",
-    author: {
-      name: "Alex Rodriguez",
-      avatar: "🎨",
-      bio: "UX Designer",
-      verified: true
-    },
-    category: "Design",
-    readTime: 10,
-    publishedAt: "2024-01-08",
-    tags: ["Design Systems", "UX", "UI", "Consistency"],
-    featuredImage: "/api/placeholder/400/250",
-    views: 1678,
-    likes: 98,
-    comments: 28,
-    shares: 34,
-    isTrending: false
-  },
-  {
-    id: 5,
-    title: "Machine Learning for Beginners",
-    excerpt: "Start your journey into machine learning with this comprehensive guide covering the basics and practical applications.",
-    content: "Full article content would go here...",
-    author: {
-      name: "Dr. Lisa Wang",
-      avatar: "🧠",
-      bio: "Data Scientist",
-      verified: true
-    },
-    category: "Technology",
-    readTime: 12,
-    publishedAt: "2024-01-05",
-    tags: ["Machine Learning", "AI", "Data Science", "Python"],
-    featuredImage: "/api/placeholder/400/250",
-    views: 3420,
-    likes: 267,
-    comments: 89,
-    shares: 123,
-    isTrending: true
-  },
-  {
-    id: 6,
-    title: "Remote Work Best Practices",
-    excerpt: "Navigate the challenges of remote work with proven strategies for productivity, communication, and work-life balance.",
-    content: "Full article content would go here...",
-    author: {
-      name: "David Kim",
-      avatar: "🏠",
-      bio: "Product Manager",
-      verified: false
-    },
-    category: "Business",
-    readTime: 7,
-    publishedAt: "2024-01-03",
-    tags: ["Remote Work", "Productivity", "Communication", "Work-Life Balance"],
-    featuredImage: "/api/placeholder/400/250",
-    views: 1456,
-    likes: 112,
-    comments: 35,
-    shares: 67,
-    isTrending: false
-  }
-];
-
-const categories = [
-  { name: "All", count: blogPosts.length, icon: "🌟" },
-  { name: "Technology", count: blogPosts.filter(p => p.category === "Technology").length, icon: "💻" },
-  { name: "Programming", count: blogPosts.filter(p => p.category === "Programming").length, icon: "⚡" },
-  { name: "Design", count: blogPosts.filter(p => p.category === "Design").length, icon: "🎨" },
-  { name: "Writing", count: blogPosts.filter(p => p.category === "Writing").length, icon: "✍️" },
-  { name: "Business", count: blogPosts.filter(p => p.category === "Business").length, icon: "📊" },
-];
+import { PostCard } from '@/components/ui/post-card';
+import { H2, BodyLarge, Muted } from '@/components/ui/text';
+import { useAuthStore, useToast, BlogService, UserService } from '@/lib';
+import { Blog } from '@/lib/services/blog.service';
+import { User } from '@/lib/services/auth.service';
 
 export default function BlogPage() {
+  const { isAuthenticated } = useAuthStore();
+  const toast = useToast();
+  
   const [activeCategory, setActiveCategory] = useState('All');
-  const [isLoading, setIsLoading] = useState(false);
-  const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
-  const [followedUsers, setFollowedUsers] = useState<Set<number>>(new Set());
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load blogs on component mount
+  useEffect(() => {
+    loadBlogs();
+  }, []);
+
+  const loadBlogs = async () => {
+    try {
+      setIsLoading(true);
+      const response = await BlogService.getAllBlogs({ limit: 20 });
+      setBlogs(response.items || []);
+    } catch (error: any) {
+      console.error('Failed to load blogs:', error);
+      toast.error(error.message || 'Failed to load blogs');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Generate categories from actual blog data
+  const categories = React.useMemo(() => {
+    const categoryCounts = blogs.reduce((acc, blog) => {
+      const category = blog.tags?.[0] || 'Uncategorized';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const categoryList = [
+      { name: "All", count: blogs.length, icon: "🌟" },
+      ...Object.entries(categoryCounts).map(([name, count]) => ({
+        name,
+        count,
+        icon: "📝"
+      }))
+    ];
+
+    return categoryList;
+  }, [blogs]);
 
   const handleCategoryChange = (categoryName: string) => {
     setActiveCategory(categoryName);
-    // Handle category filtering logic here
+    // TODO: Implement category filtering with API
   };
 
   const handleLoadMore = () => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    // TODO: Implement pagination
+    console.log('Load more clicked');
   };
 
-  const handleLike = (postId: number) => {
-    const newLikedPosts = new Set(likedPosts);
-    if (newLikedPosts.has(postId)) {
-      newLikedPosts.delete(postId);
-    } else {
-      newLikedPosts.add(postId);
+  const handleLike = async (postId: string) => {
+    if (!isAuthenticated) {
+      toast.error('Please login to like posts');
+      return;
     }
-    setLikedPosts(newLikedPosts);
+
+    try {
+      if (likedPosts.has(postId)) {
+        await BlogService.unlikeBlog(postId);
+        setLikedPosts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+        toast.success('Post unliked');
+      } else {
+        await BlogService.likeBlog(postId);
+        setLikedPosts(prev => new Set(prev).add(postId));
+        toast.success('Post liked');
+      }
+      
+      // Refresh data to update like counts
+      loadBlogs();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to like post');
+    }
   };
 
-  const handleFollow = (authorName: string) => {
-    // In a real app, you'd track by user ID
-    console.log('Follow/Unfollow:', authorName);
+  const handleFollow = async (authorName: string) => {
+    if (!isAuthenticated) {
+      toast.error('Please login to follow users');
+      return;
+    }
+
+    try {
+      // Find the user by name and follow them
+      const blog = blogs.find(b => b.author.name === authorName);
+      if (blog) {
+        const userId = blog.author._id;
+        if (followedUsers.has(userId)) {
+          await UserService.unfollowUser(userId);
+          setFollowedUsers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(userId);
+            return newSet;
+          });
+          toast.success('User unfollowed');
+        } else {
+          await UserService.followUser(userId);
+          setFollowedUsers(prev => new Set(prev).add(userId));
+          toast.success('User followed');
+        }
+        
+        // Refresh data to update follower counts
+        loadBlogs();
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to follow user');
+    }
   };
 
+  // Handle error state
+  if (blogs.length === 0 && !isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <p className="text-destructive">Failed to load blogs. Please try again later.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter posts by category
   const filteredPosts = activeCategory === 'All' 
-    ? blogPosts 
-    : blogPosts.filter(post => post.category === activeCategory);
+    ? blogs 
+    : blogs.filter(blog => blog.tags?.includes(activeCategory));
+
+  // Transform blog data to component interface
+  const adaptedPosts = blogs.map(blog => ({
+    id: blog._id,
+    title: blog.title,
+    excerpt: blog.excerpt,
+    author: {
+      name: blog.author.name,
+      avatar: blog.author.avatar || '👤',
+      verified: false
+    },
+    date: new Date(blog.createdAt).toLocaleDateString(),
+    readTime: blog.readTime || 5,
+          image: blog.coverImage || undefined,
+      tags: blog.tags || [],
+      likes: blog.likes || 0,
+      comments: blog.comments || 0,
+      shares: blog.shares || 0,
+    isTrending: blog.featured || false
+  }));
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading blogs...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <section className="py-16 bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-4">Discover Amazing Content</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Explore insights, tutorials, and stories from our community of creators and developers
-          </p>
-        </div>
-      </section>
-
-      {/* Categories Filter */}
-      <section className="py-8 border-b border-border bg-card">
+      <div className="bg-gradient-to-r from-primary/10 to-chart-5/10 py-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap gap-3 justify-center">
+          <div className="text-center">
+            <H2 className="mb-4">Discover Amazing Stories</H2>
+            <BodyLarge className="text-muted-foreground max-w-2xl mx-auto">
+              Explore thought-provoking articles, tutorials, and insights from our community of creators
+            </BodyLarge>
+          </div>
+        </div>
+      </div>
+
+      {/* Category Filter */}
+      <div className="border-b border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex gap-4 overflow-x-auto py-4">
             {categories.map((category) => (
               <button
                 key={category.name}
                 onClick={() => handleCategoryChange(category.name)}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
                   activeCategory === category.name
-                    ? 'bg-gradient-to-r from-primary to-chart-5 text-background shadow-lg'
-                    : 'bg-accent text-foreground hover:bg-accent/80 hover:scale-105'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-accent text-accent-foreground hover:bg-accent/80'
                 }`}
               >
                 <span>{category.icon}</span>
-                {category.name} ({category.count})
+                <span className="font-medium">{category.name}</span>
+                <span className="text-sm opacity-75">({category.count})</span>
               </button>
             ))}
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Blog Posts */}
-      <section className="py-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {filteredPosts.map((post) => (
-              <article key={post.id} className="social-card group">
-                {post.isTrending && (
-                  <div className="trending-badge absolute top-4 right-4 z-10">
-                    🔥 Trending
-                  </div>
-                )}
-                
-                {/* Post Header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-accent to-accent/50 rounded-full flex items-center justify-center text-xl">
-                    {post.author.avatar}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">{post.author.name}</span>
-                      {post.author.verified && (
-                        <span className="text-primary">✓</span>
-                      )}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {post.publishedAt} • {post.readTime} min read
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => handleFollow(post.author.name)}
-                    className="follow-btn text-sm"
-                  >
-                    Follow
-                  </button>
-                </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredPosts.length > 0 ? (
+            filteredPosts.map((blog) => (
+              <PostCard
+                key={blog._id}
+                post={{
+                  id: parseInt(blog._id) || 0,
+                  title: blog.title,
+                  excerpt: blog.excerpt,
+                  author: {
+                    name: blog.author.name,
+                    avatar: blog.author.avatar || '👤',
+                    verified: false
+                  },
+                  date: new Date(blog.createdAt).toLocaleDateString(),
+                  readTime: blog.readTime || 5,
+                  image: blog.coverImage || 'https://via.placeholder.com/400x250/6b7280/ffffff?text=No+Image',
+                  tags: blog.tags || [],
+                  likes: blog.likes || 0,
+                  comments: blog.comments || 0,
+                  shares: blog.shares || 0,
+                  isTrending: blog.featured || false
+                }}
+                isLiked={likedPosts.has(blog._id)}
+                onLike={() => handleLike(blog._id)}
+                onFollow={handleFollow}
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-muted-foreground">No blogs found in this category.</p>
+            </div>
+          )}
+        </div>
 
-                {/* Post Image */}
-                <div className="aspect-video rounded-xl overflow-hidden mb-4 bg-accent">
-                  <div className="w-full h-full bg-gradient-to-br from-accent to-accent/50 flex items-center justify-center">
-                    <span className="text-4xl">{post.author.avatar}</span>
-                  </div>
-                </div>
-
-                {/* Post Content */}
-                <h3 className="text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors line-clamp-2">
-                  {post.title}
-                </h3>
-                <p className="text-muted-foreground mb-4 line-clamp-3">{post.excerpt}</p>
-                
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {post.tags.slice(0, 3).map((tag) => (
-                    <span key={tag} className="px-3 py-1 bg-accent text-sm text-foreground rounded-full">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Post Stats */}
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                  <span>👁️ {post.views} views</span>
-                  <span>❤️ {post.likes} likes</span>
-                  <span>💬 {post.comments} comments</span>
-                  <span>📤 {post.shares} shares</span>
-                </div>
-
-                {/* Post Actions */}
-                <div className="post-actions">
-                  <button
-                    onClick={() => handleLike(post.id)}
-                    className={`action-btn like ${likedPosts.has(post.id) ? 'text-like' : ''}`}
-                  >
-                    <svg className="w-5 h-5" fill={likedPosts.has(post.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    {post.likes}
-                  </button>
-                  <button className="action-btn comment">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    {post.comments}
-                  </button>
-                  <button className="action-btn share">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                    </svg>
-                    {post.shares}
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {/* Load More */}
+        {/* Load More Button */}
+        {/* pagination?.hasNext && (
           <div className="text-center mt-12">
             <button
               onClick={handleLoadMore}
-              disabled={isLoading}
-              className="px-8 py-3 bg-gradient-to-r from-primary to-chart-5 text-background rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-secondary"
             >
-              {isLoading ? 'Loading...' : 'Load More Articles'}
+              Load More Posts
             </button>
           </div>
-        </div>
-      </section>
+        ) */}
+      </div>
     </div>
   );
 }

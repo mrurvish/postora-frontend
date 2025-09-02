@@ -1,260 +1,473 @@
 "use client";
+import React, { useState, useEffect } from 'react';
+import { useAuthStore, useProfileStore } from '@/lib';
+import { useToast } from '@/lib';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { H1, H2, H3, P, Muted, Label } from '@/components/ui/text';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { SubmitButton } from '@/components/ui/submit-button';
 
-import React, { useState } from 'react';
-import { ProfileHeader, ProfileTabs, ProfileSettings } from '@/components/sections';
-import { PostCard } from '@/components/ui';
-
-// Demo user data
-const demoUser = {
-  id: 1,
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'john.doe@example.com',
-  avatar: '👨‍💻',
-  bio: 'Passionate writer and tech enthusiast. I love sharing knowledge and experiences through writing.',
-  location: 'San Francisco, CA',
-  website: 'https://johndoe.dev',
-  twitter: '@johndoe',
-  joinedDate: '2023-06-15',
-  postsCount: 24,
-  followersCount: 156,
-  followingCount: 89,
-  role: 'Writer',
-  isVerified: true,
-};
-
-const userPosts = [
-  {
-    id: 1,
-    title: "Getting Started with Next.js 14",
-    excerpt: "A comprehensive guide to building modern web applications with Next.js 14...",
-    status: "published" as const,
-    createdAt: "2024-01-15T10:00:00Z",
-    updatedAt: "2024-01-15T10:00:00Z",
-    readTime: 8,
-    category: "Technology",
-    tags: ["Next.js", "React", "Web Development", "JavaScript"]
-  },
-  {
-    id: 2,
-    title: "The Future of React Development",
-    excerpt: "Exploring the latest features and best practices in React development...",
-    status: "published" as const,
-    createdAt: "2024-01-10T14:30:00Z",
-    updatedAt: "2024-01-10T14:30:00Z",
-    readTime: 12,
-    category: "Programming",
-    tags: ["React", "Frontend", "Development", "Best Practices"]
-  },
-  {
-    id: 3,
-    title: "Building Scalable APIs with Node.js",
-    excerpt: "Learn how to design and implement robust APIs that can handle millions of requests...",
-    status: "draft" as const,
-    createdAt: "2024-01-05T09:15:00Z",
-    updatedAt: "2024-01-08T16:45:00Z",
-    readTime: 15,
-    category: "Backend",
-    tags: ["Node.js", "API", "Scalability", "Performance"]
-  },
-];
+interface ProfileData {
+  _id: string;
+  name: string;
+  username: string;
+  email: string;
+  role: string;
+  isVerified: boolean;
+  isActive: boolean;
+  avatar?: string;
+  bio?: string;
+  socialLinks: {
+    twitter?: string;
+    facebook?: string;
+    linkedin?: string;
+    instagram?: string;
+    youtube?: string;
+  };
+  preferences: {
+    emailNotifications: boolean;
+    pushNotifications: boolean;
+    newsletter: boolean;
+    theme: 'light' | 'dark' | 'system';
+  };
+  stats: {
+    totalPosts: number;
+    totalLikes: number;
+    totalComments: number;
+    followers: number;
+    following: number;
+  };
+  createdAt: string;
+  lastLogin: string;
+}
 
 export default function ProfilePage() {
-  const [activeTab, setActiveTab] = useState('posts');
+  const { isAuthenticated } = useAuthStore();
+  const { profile, getCurrentUserProfile, updateProfile } = useProfileStore();
+  const toast = useToast();
+  
+  const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    bio: '',
+    avatar: '',
+    socialLinks: {
+      twitter: '',
+      facebook: '',
+      linkedin: '',
+      instagram: '',
+      youtube: ''
+    },
+    preferences: {
+      emailNotifications: true,
+      pushNotifications: true,
+      newsletter: false
+    }
+  });
 
-  const tabs = [
-    { id: 'posts', label: 'Posts', count: userPosts.length },
-    { id: 'drafts', label: 'Drafts', count: userPosts.filter(p => p.status === 'draft').length },
-    { id: 'settings', label: 'Settings', count: null },
-  ];
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadProfile();
+    }
+  }, [isAuthenticated]);
 
-  const handleEditPost = (postId: number) => {
-    console.log('Edit post:', postId);
-    // Handle edit post logic
+  useEffect(() => {
+    if (profile) {
+      setEditForm({
+        name: profile.name || '',
+        bio: profile.bio || '',
+        avatar: profile.avatar || '',
+        socialLinks: {
+          twitter: profile.socialLinks?.twitter || '',
+          facebook: profile.socialLinks?.facebook || '',
+          linkedin: profile.socialLinks?.linkedin || '',
+          instagram: profile.socialLinks?.instagram || '',
+          youtube: profile.socialLinks?.youtube || ''
+        },
+        preferences: {
+          emailNotifications: profile.preferences?.emailNotifications ?? true,
+          pushNotifications: profile.preferences?.pushNotifications ?? true,
+          newsletter: profile.preferences?.newsletter ?? false
+        }
+      });
+    }
+  }, [profile]);
+
+  const loadProfile = async () => {
+    try {
+      setIsLoading(true);
+      await getCurrentUserProfile();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load profile');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handlePublishPost = (postId: number) => {
-    console.log('Publish post:', postId);
-    // Handle publish post logic
+  const handleUpdateProfile = async () => {
+    try {
+      setIsLoading(true);
+      const result = await updateProfile(editForm);
+      
+      if (result.success) {
+        toast.success(result.message);
+        setIsEditing(false);
+        await loadProfile(); // Reload profile data
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleInputChange = (field: string, value: any) => {
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      setEditForm(prev => ({
+        ...prev,
+        [parent]: {
+          ...(prev as any)[parent],
+          [child]: value
+        }
+      }));
+    } else {
+      setEditForm(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
+  // Show sign-in message if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <H1 className="mb-4">Please sign in to view your profile</H1>
+          <Muted>You need to be signed in to access your profile.</Muted>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isLoading && !profile) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <P className="mt-4">Loading your profile...</P>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <H1 className="mb-4">Profile not found</H1>
+          <Muted>Unable to load your profile data.</Muted>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Profile Header */}
-      <section className="py-16 bg-accent/30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="w-24 h-24 bg-foreground rounded-full flex items-center justify-center mx-auto mb-6">
-              <span className="text-background text-4xl">{demoUser.avatar}</span>
-            </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              {demoUser.firstName} {demoUser.lastName}
-            </h1>
-            <p className="text-muted-foreground mb-4">{demoUser.bio}</p>
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-              <span>{demoUser.postsCount} posts</span>
-              <span>{demoUser.followersCount} followers</span>
-              <span>{demoUser.followingCount} following</span>
-            </div>
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="mt-6 px-6 py-2 border border-border text-foreground rounded-lg hover:bg-accent transition-all duration-200"
-            >
-              {isEditing ? 'Cancel' : 'Edit Profile'}
-            </button>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <H1 className="mb-2">Profile</H1>
+          <Muted>Manage your account settings and preferences</Muted>
         </div>
-      </section>
 
-      {/* Tabs */}
-      <section className="border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-2 border-b-2 font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-foreground text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab.label}
-                {tab.count !== null && (
-                  <span className="ml-2 text-sm text-muted-foreground">({tab.count})</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Info Card */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <H2>Profile Information</H2>
+                <Button
+                  variant={isEditing ? "outlined" : "filled"}
+                  onClick={() => setIsEditing(!isEditing)}
+                  disabled={isLoading}
+                >
+                  {isEditing ? 'Cancel' : 'Edit Profile'}
+                </Button>
+              </div>
 
-      {/* Tab Content */}
-      <section className="py-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {activeTab === 'posts' && (
-            <div className="space-y-8">
-              <h2 className="text-2xl font-bold text-foreground">Published Posts</h2>
-              <div className="grid gap-8">
-                {userPosts.filter(post => post.status === 'published').map((post) => (
-                  <article key={post.id} className="p-6 border border-border rounded-lg hover:border-primary transition-colors">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{post.category}</span>
-                        <span>•</span>
-                        <span>{post.readTime} min read</span>
-                        <span>•</span>
-                        <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+              {isEditing ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      value={editForm.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Bio</Label>
+                    <Input
+                      id="bio"
+                      value={editForm.bio}
+                      onChange={(e) => handleInputChange('bio', e.target.value)}
+                      placeholder="Tell us about yourself"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="avatar">Avatar URL</Label>
+                    <Input
+                      id="avatar"
+                      value={editForm.avatar}
+                      onChange={(e) => handleInputChange('avatar', e.target.value)}
+                      placeholder="https://example.com/avatar.jpg"
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <H3>Social Links</H3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="twitter">Twitter</Label>
+                        <Input
+                          id="twitter"
+                          value={editForm.socialLinks.twitter}
+                          onChange={(e) => handleInputChange('socialLinks.twitter', e.target.value)}
+                          placeholder="@username"
+                        />
                       </div>
-                      <h3 className="text-xl font-semibold text-foreground">{post.title}</h3>
-                      <p className="text-muted-foreground">{post.excerpt}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {post.tags.map((tag) => (
-                          <span key={tag} className="px-2 py-1 bg-accent text-xs text-foreground rounded">
-                            {tag}
-                          </span>
-                        ))}
+                      <div className="space-y-2">
+                        <Label htmlFor="linkedin">LinkedIn</Label>
+                        <Input
+                          id="linkedin"
+                          value={editForm.socialLinks.linkedin}
+                          onChange={(e) => handleInputChange('socialLinks.linkedin', e.target.value)}
+                          placeholder="username"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="instagram">Instagram</Label>
+                        <Input
+                          id="instagram"
+                          value={editForm.socialLinks.instagram}
+                          onChange={(e) => handleInputChange('socialLinks.instagram', e.target.value)}
+                          placeholder="@username"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="youtube">YouTube</Label>
+                        <Input
+                          id="youtube"
+                          value={editForm.socialLinks.youtube}
+                          onChange={(e) => handleInputChange('socialLinks.youtube', e.target.value)}
+                          placeholder="@channel"
+                        />
                       </div>
                     </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          )}
+                  </div>
 
-          {activeTab === 'drafts' && (
-            <div className="space-y-8">
-              <h2 className="text-2xl font-bold text-foreground">Draft Posts</h2>
-              <div className="grid gap-8">
-                {userPosts.filter(post => post.status === 'draft').map((post) => (
-                  <article key={post.id} className="p-6 border border-border rounded-lg hover:border-primary transition-colors">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs rounded">
-                          Draft
-                        </span>
-                        <span>{post.category}</span>
-                        <span>•</span>
-                        <span>{post.readTime} min read</span>
-                        <span>•</span>
-                        <span>Last edited {new Date(post.updatedAt).toLocaleDateString()}</span>
+                  <div className="space-y-4">
+                    <H3>Preferences</H3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="emailNotifications">Email Notifications</Label>
+                        <input
+                          type="checkbox"
+                          id="emailNotifications"
+                          checked={editForm.preferences.emailNotifications}
+                          onChange={(e) => handleInputChange('preferences.emailNotifications', e.target.checked)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                        />
                       </div>
-                      <h3 className="text-xl font-semibold text-foreground">{post.title}</h3>
-                      <p className="text-muted-foreground">{post.excerpt}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {post.tags.map((tag) => (
-                          <span key={tag} className="px-2 py-1 bg-accent text-xs text-foreground rounded">
-                            {tag}
-                          </span>
-                        ))}
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="pushNotifications">Push Notifications</Label>
+                        <input
+                          type="checkbox"
+                          id="pushNotifications"
+                          checked={editForm.preferences.pushNotifications}
+                          onChange={(e) => handleInputChange('preferences.pushNotifications', e.target.checked)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                        />
                       </div>
-                      <div className="flex gap-3 pt-3">
-                        <button
-                          onClick={() => handleEditPost(post.id)}
-                          className="px-4 py-2 bg-foreground text-background rounded-lg text-sm hover:bg-primary transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handlePublishPost(post.id)}
-                          className="px-4 py-2 border border-border text-foreground rounded-lg text-sm hover:bg-accent transition-colors"
-                        >
-                          Publish
-                        </button>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="newsletter">Newsletter</Label>
+                        <input
+                          type="checkbox"
+                          id="newsletter"
+                          checked={editForm.preferences.newsletter}
+                          onChange={(e) => handleInputChange('preferences.newsletter', e.target.checked)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                        />
                       </div>
                     </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          )}
+                  </div>
 
-          {activeTab === 'settings' && (
-            <div className="max-w-2xl">
-              <h2 className="text-2xl font-bold text-foreground mb-8">Profile Settings</h2>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">First Name</label>
-                  <input
-                    type="text"
-                    defaultValue={demoUser.firstName}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:border-primary focus:outline-none"
-                  />
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      onClick={handleUpdateProfile}
+                      disabled={isLoading}
+                      className="flex-1"
+                    >
+                      {isLoading ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setIsEditing(false)}
+                      disabled={isLoading}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Last Name</label>
-                  <input
-                    type="text"
-                    defaultValue={demoUser.lastName}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:border-primary focus:outline-none"
-                  />
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <Avatar 
+                      src={profile.avatar} 
+                      alt={profile.name}
+                      fallback={profile.name.charAt(0).toUpperCase()}
+                      className="w-20 h-20"
+                      size="xl"
+                    />
+                    <div>
+                      <H3>{profile.name}</H3>
+                      <Muted>@{profile.username}</Muted>
+                      <P className="text-sm text-muted-foreground">{profile.email}</P>
+                    </div>
+                  </div>
+
+                  {profile.bio && (
+                    <div>
+                      <Label>Bio</Label>
+                      <P className="mt-1">{profile.bio}</P>
+                    </div>
+                  )}
+
+                  {/* Social Links */}
+                  {(profile.socialLinks.twitter || profile.socialLinks.linkedin || 
+                    profile.socialLinks.instagram || profile.socialLinks.youtube) && (
+                    <div>
+                      <Label>Social Links</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {profile.socialLinks.twitter && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                            Twitter: {profile.socialLinks.twitter}
+                          </span>
+                        )}
+                        {profile.socialLinks.linkedin && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                            LinkedIn: {profile.socialLinks.linkedin}
+                          </span>
+                        )}
+                        {profile.socialLinks.instagram && (
+                          <span className="px-2 py-1 bg-pink-100 text-pink-800 rounded text-sm">
+                            Instagram: {profile.socialLinks.instagram}
+                          </span>
+                        )}
+                        {profile.socialLinks.youtube && (
+                          <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-sm">
+                            YouTube: {profile.socialLinks.youtube}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Bio</label>
-                  <textarea
-                    defaultValue={demoUser.bio}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:border-primary focus:outline-none"
-                  />
+              )}
+            </Card>
+
+            {/* Stats Card */}
+            <Card className="p-6">
+              <H2 className="mb-4">Statistics</H2>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="text-center">
+                  <H3 className="text-2xl text-primary">{profile.stats.totalPosts}</H3>
+                  <Muted>Posts</Muted>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Location</label>
-                  <input
-                    type="text"
-                    defaultValue={demoUser.location}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:border-primary focus:outline-none"
-                  />
+                <div className="text-center">
+                  <H3 className="text-2xl text-primary">{profile.stats.totalLikes}</H3>
+                  <Muted>Likes</Muted>
                 </div>
-                <button className="px-6 py-2 bg-foreground text-background rounded-lg hover:bg-primary transition-colors">
-                  Save Changes
-                </button>
+                <div className="text-center">
+                  <H3 className="text-2xl text-primary">{profile.stats.totalComments}</H3>
+                  <Muted>Comments</Muted>
+                </div>
+                <div className="text-center">
+                  <H3 className="text-2xl text-primary">{profile.stats.followers}</H3>
+                  <Muted>Followers</Muted>
+                </div>
+                <div className="text-center">
+                  <H3 className="text-2xl text-primary">{profile.stats.following}</H3>
+                  <Muted>Following</Muted>
+                </div>
               </div>
-            </div>
-          )}
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Account Info */}
+            <Card className="p-6">
+              <H3 className="mb-4">Account Information</H3>
+              <div className="space-y-3">
+                <div>
+                  <Label>Role</Label>
+                  <P className="capitalize">{profile.role}</P>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${profile.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <P>{profile.isActive ? 'Active' : 'Inactive'}</P>
+                  </div>
+                </div>
+                <div>
+                  <Label>Verification</Label>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${profile.isVerified ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                    <P>{profile.isVerified ? 'Verified' : 'Not Verified'}</P>
+                  </div>
+                </div>
+                <div>
+                  <Label>Member Since</Label>
+                  <P>{new Date(profile.createdAt).toLocaleDateString()}</P>
+                </div>
+                <div>
+                  <Label>Last Login</Label>
+                  <P>{profile.lastLogin ? new Date(profile.lastLogin).toLocaleDateString() : 'Never'}</P>
+                </div>
+              </div>
+            </Card>
+
+            {/* Preferences */}
+            <Card className="p-6">
+              <H3 className="mb-4">Preferences</H3>
+              <div className="space-y-3">
+                <div>
+                  <Label>Email Notifications</Label>
+                  <P className="mt-1">{profile.preferences?.emailNotifications ? 'Enabled' : 'Disabled'}</P>
+                </div>
+                <div>
+                  <Label>Push Notifications</Label>
+                  <P className="mt-1">{profile.preferences?.pushNotifications ? 'Enabled' : 'Disabled'}</P>
+                </div>
+                <div>
+                  <Label>Newsletter</Label>
+                  <P className="mt-1">{profile.preferences?.newsletter ? 'Subscribed' : 'Not Subscribed'}</P>
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

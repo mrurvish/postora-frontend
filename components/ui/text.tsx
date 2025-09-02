@@ -56,6 +56,9 @@ export function Body({ children, className }: TextProps) {
   );
 }
 
+// Alias for Body component
+export const P = Body;
+
 export function BodySmall({ children, className }: TextProps) {
   return (
     <p className={cn("text-sm text-foreground leading-relaxed", className)}>

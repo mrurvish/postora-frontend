@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface Story {
-  id: number;
+  id: string;
   user: string;
   avatar: string;
   isLive: boolean;
@@ -12,6 +12,10 @@ interface StoriesProps {
 }
 
 export function Stories({ stories }: StoriesProps) {
+  if (!stories || stories.length === 0) {
+    return null; // Don't render if no stories
+  }
+
   return (
     <section className="py-8 border-b border-border relative overflow-visible">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,13 +1,14 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from './button';
 import { Input } from './input';
 import { SubmitButton } from './submit-button';
-import { DemoCredentials } from './demo-credentials';
 import { PasswordStrengthIndicator } from './password-strength';
 import { TermsCheckbox } from './terms-checkbox';
 import { H3, Body, Muted, Label } from './text';
 import { BRAND_CONFIG } from '@/lib/config';
+import { useToast, useAuthStore } from '@/lib';
 
 interface AuthDialogProps {
   isOpen: boolean;
@@ -18,6 +19,9 @@ interface AuthDialogProps {
 export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialogProps) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -25,6 +29,29 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
     confirmPassword: '',
     termsAccepted: false
   });
+
+  // Get auth store and toast
+  const { login, register } = useAuthStore();
+  const toast = useToast();
+
+  // Update mode when initialMode changes
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        termsAccepted: false
+      });
+      setIsRateLimited(false);
+    }
+  }, [isOpen]);
 
   // Prevent body scroll and make site content inaccessible when dialog is open
   useEffect(() => {
@@ -55,10 +82,74 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    onClose();
+    
+    // Prevent rapid submissions
+    if (isLoading || isRateLimited) {
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      setIsRateLimited(false);
+      
+      if (mode === 'login') {
+        // Login
+        const result = await login({
+          email: formData.email,
+          password: formData.password
+        });
+        
+        if (result.success) {
+          toast.success(result.message);
+          onClose();
+          // Redirect to profile page after successful login
+          router.push('/profile');
+        } else {
+          toast.error(result.message);
+          // Check if it's a rate limiting error
+          if (result.message.includes('wait a moment')) {
+            setIsRateLimited(true);
+            setTimeout(() => setIsRateLimited(false), 3000); // Reset after 3 seconds
+          }
+        }
+      } else {
+        // Register
+        if (formData.password !== formData.confirmPassword) {
+          toast.error('Passwords do not match');
+          return;
+        }
+        
+        if (!formData.termsAccepted) {
+          toast.error('Please accept the terms and conditions');
+          return;
+        }
+
+        const result = await register({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          username: formData.email.split('@')[0], // Generate username from email
+        });
+        
+        if (result.success) {
+          toast.success(result.message);
+          onClose();
+          // Redirect to profile page after successful registration
+          router.push('/profile');
+        } else {
+          toast.error(result.message);
+          // Check if it's a rate limiting error
+          if (result.message.includes('wait a moment')) {
+            setIsRateLimited(true);
+            setTimeout(() => setIsRateLimited(false), 3000); // Reset after 3 seconds
+          }
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Authentication failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const switchMode = () => {
@@ -125,6 +216,7 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
                     value={formData.name}
                     onChange={handleInputChange}
                     required
+                    disabled={isLoading || isRateLimited}
                   />
                 </div>
               )}
@@ -139,6 +231,7 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
                   value={formData.email}
                   onChange={handleInputChange}
                   required
+                  disabled={isLoading || isRateLimited}
                 />
               </div>
 
@@ -152,6 +245,7 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
                   value={formData.password}
                   onChange={handleInputChange}
                   required
+                  disabled={isLoading || isRateLimited}
                 />
                 {mode === 'register' && <PasswordStrengthIndicator password={formData.password} />}
               </div>
@@ -167,6 +261,7 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     required
+                    disabled={isLoading || isRateLimited}
                   />
                 </div>
               )}
@@ -181,21 +276,25 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
               <SubmitButton
                 type="submit"
                 isLoading={isLoading}
+                disabled={isRateLimited}
                 className="w-full"
               >
-                {mode === 'login' ? 'Sign In' : 'Create Account'}
+                {isRateLimited 
+                  ? 'Please wait...' 
+                  : mode === 'login' 
+                    ? 'Sign In' 
+                    : 'Create Account'
+                }
               </SubmitButton>
-            </form>
 
-            {/* Demo creds */}
-            {mode === 'login' && (
-              <div className="mt-5">
-                <DemoCredentials 
-                  email="demo@example.com"
-                  password="demo123"
-                />
-              </div>
-            )}
+              {isRateLimited && (
+                <div className="text-center p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <Muted className="text-sm text-orange-700">
+                    ⏱️ Too many attempts. Please wait 3 seconds before trying again.
+                  </Muted>
+                </div>
+              )}
+            </form>
 
             {/* Switch */}
             <div className="text-center mt-5">
